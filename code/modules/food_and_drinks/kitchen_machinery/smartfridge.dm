@@ -1027,3 +1027,302 @@
 		SStgui.update_uis(src)
 		return TRUE
 	return FALSE
+
+#define BASE_POINT_MULT 0.5
+#define BASE_STORAGE 50
+#define POINT_MULT_ADD_PER_RATING 0.2
+#define FILL_LEVEL_LEVEL_1 1
+#define FILL_LEVEL_LEVEL_2 26
+#define FILL_LEVEL_LEVEL_3 56
+
+/**
+  * # Salvage Appraiser Machine
+  *
+  * Scans salvage and turns it into mining points.
+  */
+/obj/machinery/smartfridge/salvage_appraiser
+	name = "salvage appraiser"
+	desc = "A machine that accepts loot and salvage collected from space. Points for ore are generated based on type and can be redeemed at a explorer equipment vendor."
+	icon = 'icons/obj/machines/mining_machines.dmi'
+	icon_state = "salvage_appraiser"
+	density = TRUE
+	anchored = TRUE
+	req_access = list(ACCESS_MINERAL_STOREROOM)
+	speed_process = TRUE
+	layer = BELOW_OBJ_LAYER
+	// Settings
+	/// The access number required to claim points from the machine.
+	var/req_access_claim = ACCESS_MINING_STATION
+	/// If TRUE, [/obj/machinery/mineral/ore_redemption/var/req_access_claim] is ignored and any ID may be used to claim points.
+	var/anyone_claim = FALSE
+	// Variables
+	/// The number of unclaimed points.
+	var/points = 0
+	/// Point multiplier applied when depositing unappraised salvage. Updated by [/obj/machinery/proc/RefreshParts].
+	var/point_upgrade = 1
+	/// Associative list (/text => /number) tracking the amounts of a specific item held by the fridge.
+
+/obj/machinery/smartfridge/salvage_appraiser/Initialize(mapload)
+	. = ..()
+	item_quants = list()
+
+	component_parts = list()
+	component_parts += new /obj/item/circuitboard/salvage_appraiser(null)
+	component_parts += new /obj/item/stock_parts/matter_bin(null)
+	component_parts += new /obj/item/stock_parts/manipulator(null)
+	component_parts += new /obj/item/stock_parts/micro_laser(null)
+	component_parts += new /obj/item/stock_parts/micro_laser(null)
+	RefreshParts()
+	update_icon(UPDATE_OVERLAYS)
+	// Accepted items
+	accepted_items_typecache = typecacheof(list(
+		/obj/item/salvage
+	))
+
+/obj/machinery/smartfridge/salvage_appraiser/RefreshParts()
+	var/P = BASE_POINT_MULT
+	for(var/obj/item/stock_parts/micro_laser/M in component_parts)
+		P += POINT_MULT_ADD_PER_RATING * M.rating
+	for(var/obj/item/stock_parts/matter_bin/M in component_parts)
+		max_n_of_items = BASE_STORAGE * M.rating
+		// Manipulators do nothing
+	// Update our values
+	point_upgrade = P
+	SStgui.update_uis(src)
+
+/obj/machinery/smartfridge/salvage_appraiser/Destroy()
+	if(drop_contents_on_delete)
+		for(var/atom/movable/A in contents)
+			A.forceMove(loc)
+	return ..()
+
+/obj/machinery/smartfridge/salvage_appraiser/process()
+	if(stat & (BROKEN|NOPOWER))
+		return
+	if(seconds_electrified > 0)
+		seconds_electrified--
+	if(shoot_inventory && prob(2))
+		throw_item()
+
+/obj/machinery/smartfridge/salvage_appraiser/power_change()
+	. = ..()
+	if(stat & (BROKEN|NOPOWER))
+		set_light(0)
+	else
+		set_light(light_range_on, light_power_on)
+	if(.)
+		update_icon(UPDATE_OVERLAYS)
+
+/obj/machinery/smartfridge/salvage_appraiser/extinguish_light(force = FALSE)
+	set_light(0)
+	underlays.Cut()
+
+/obj/machinery/smartfridge/salvage_appraiser/update_overlays()
+	. = ..()
+	underlays.Cut()
+	if(light)
+		underlays += emissive_appearance(icon, "[icon_lightmask]_lightmask")
+	if(panel_open)
+		. += "[icon_state]_panel"
+	if(stat & (BROKEN|NOPOWER))
+		. += "[icon_state]_off"
+		if(icon_addon)
+			. += "[icon_addon]"
+		if(stat & BROKEN)
+			. += "[icon_state]_broken"
+		return
+	if(visible_contents)
+		update_salvage_appraiser_contents()
+		if(fill_level)
+			. += "[icon_state][fill_level]"
+	if(icon_addon)
+		. += "[icon_addon]"
+
+/obj/machinery/smartfridge/salvage_appraiser/proc/update_salvage_appraiser_contents()
+	// Converts the capcity into percentage.
+	var/capacity_filled = (length(contents) / max_n_of_items) * 100
+	switch(capacity_filled)
+		if(0) // Once there is one item
+			fill_level = null
+		if(FILL_LEVEL_LEVEL_1 to FILL_LEVEL_LEVEL_2 - 1)
+			fill_level = 1
+		if(FILL_LEVEL_LEVEL_2 to FILL_LEVEL_LEVEL_3 - 1)
+			fill_level = 2
+		if(FILL_LEVEL_LEVEL_3 to INFINITY)
+			fill_level = 3
+
+/obj/machinery/smartfridge/salvage_appraiser/screwdriver_act(mob/living/user, obj/item/I)
+	. = default_deconstruction_screwdriver(user, icon_state, icon_state, I)
+	if(!.)
+		return
+	update_icon(UPDATE_OVERLAYS)
+
+/obj/machinery/smartfridge/salvage_appraiser/wrench_act(mob/living/user, obj/item/I)
+	. = default_unfasten_wrench(user, I, time = 4 SECONDS)
+
+/obj/machinery/smartfridge/salvage_appraiser/crowbar_act(mob/living/user, obj/item/I)
+	. = default_deconstruction_crowbar(user, I)
+
+/obj/machinery/smartfridge/salvage_appraiser/wirecutter_act(mob/living/user, obj/item/I)
+	return ..()
+
+/obj/machinery/smartfridge/salvage_appraiser/multitool_act(mob/living/user, obj/item/I)
+	return ..()
+
+/obj/machinery/smartfridge/salvage_appraiser/wrench_act(mob/user, obj/item/I)
+	if(default_unfasten_wrench(user, I, time = 6 SECONDS))
+		return TRUE
+
+/obj/machinery/smartfridge/salvage_appraiser/attack_ghost(mob/user)
+	ui_interact(user)
+
+/obj/machinery/smartfridge/salvage_appraiser/attack_hand(mob/user)
+	if(..())
+		return
+	ui_interact(user)
+
+/obj/machinery/smartfridge/salvage_appraiser/ex_act(severity)
+	do_sparks(5, TRUE, src)
+	..()
+
+/obj/machinery/smartfridge/salvage_appraiser/ui_data(mob/user)
+	var/list/data = list()
+
+	// General info
+	data["points"] = null
+	data["contents"] = null
+
+	var/list/items = list()
+	for(var/i in 1 to length(item_quants))
+		var/K = item_quants[i]
+		var/count = item_quants[K]
+		if(count > 0)
+			items.Add(list(list("display_name" = capitalize(K), "vend" = i, "quantity" = count)))
+
+	if(length(items))
+		data["contents"] = items
+	if(points > 0)
+		data["points"] = points
+
+	return data
+
+/obj/machinery/smartfridge/salvage_appraiser/ui_act(action, params)
+	if(..())
+		return
+
+	. = TRUE
+
+	var/mob/user = usr
+
+	add_fingerprint(user)
+
+	switch(action)
+		if("vend")
+			if(!emagged && !allowed(usr)) //secure fridge check
+				to_chat(usr, "<span class='warning'>Access denied.</span>")
+				return FALSE
+
+			var/index = text2num(params["index"])
+			var/amount = text2num(params["amount"])
+			if(isnull(index) || !ISINDEXSAFE(item_quants, index) || !amount)
+				return FALSE
+			var/K = item_quants[index]
+			var/count = item_quants[K]
+			if(count == 0) // Sanity check, there are probably ways to press the button when it shouldn't be possible.
+				return FALSE
+
+			item_quants[K] = max(count - amount, 0)
+
+			var/i = amount
+			if(i == 1 && Adjacent(user) && !issilicon(user))
+				for(var/obj/O in contents)
+					if(O.name == K)
+						if(!user.put_in_hands(O))
+							O.forceMove(loc)
+							adjust_item_drop_location(O)
+						update_icon(UPDATE_OVERLAYS)
+						break
+			else
+				for(var/obj/O in contents)
+					if(O.name == K)
+						O.forceMove(loc)
+						adjust_item_drop_location(O)
+						update_icon(UPDATE_OVERLAYS)
+						i--
+						if(i <= 0)
+							return TRUE
+
+/obj/machinery/smartfridge/salvage_appraiser/item_interaction(obj/item/used, mob/living/user)
+	if(exchange_parts(user, used))
+		SStgui.update_uis(src)
+		return ITEM_INTERACT_COMPLETE
+	if(stat & (BROKEN|NOPOWER))
+		to_chat(user, "<span class='notice'>\The [src] is unpowered and useless.</span>")
+		return ITEM_INTERACT_COMPLETE
+
+	if(istype(used, /obj/item/card/id))
+		var/obj/item/card/id/ID = used
+		if(!points)
+			to_chat(usr, "<span class='warning'>There are no points to claim.</span>");
+			return ITEM_INTERACT_COMPLETE
+		if(anyone_claim || (req_access_claim in ID.access))
+			ID.mining_points += points
+			ID.total_mining_points += points
+			to_chat(usr, "<span class='notice'><b>[points] Mining Points</b> claimed. You have earned a total of <b>[ID.total_mining_points] Mining Points</b> this Shift!</span>")
+			points = 0
+			SStgui.update_uis(src)
+		else
+			to_chat(usr, "<span class='warning'>Required access not found.</span>")
+		add_fingerprint(usr)
+		return ITEM_INTERACT_COMPLETE
+
+	if(load(used, user))
+		user.visible_message("<span class='notice'>[user] has added \the [used] to \the [src].</span>", "<span class='notice'>You add \the [used] to \the [src].</span>")
+		SStgui.update_uis(src)
+		appraise_salvage(used)
+		update_icon(UPDATE_OVERLAYS)
+	else if(istype(used, /obj/item/storage/bag/expedition))
+		var/obj/item/storage/P = used
+		var/items_loaded = 0
+		for(var/obj/G in P.contents)
+			if(load(G, user))
+				items_loaded++
+				appraise_salvage(G)
+		if(items_loaded)
+			user.visible_message("<span class='notice'>[user] loads \the [src] with \the [P].</span>", "<span class='notice'>You load \the [src] with \the [P].</span>")
+			SStgui.update_uis(src)
+			update_icon(UPDATE_OVERLAYS)
+		var/failed = length(P.contents)
+		if(failed)
+			to_chat(user, "<span class='notice'>[failed] item\s [failed == 1 ? "is" : "are"] refused.</span>")
+	else if(!istype(used, /obj/item/card/emag))
+		to_chat(user, "<span class='notice'>\The [src] smartly refuses [used].</span>")
+		return TRUE
+
+/**
+  * Adds a set number of mining points, based on the salvage points, and the Salvage Appraiser upgrade state.
+  *
+  * Arguments:
+  * * salvage_path - The typepath of the inserted ore.
+  */
+/obj/machinery/smartfridge/salvage_appraiser/proc/give_points(obj/item/salvage/salvage_path)
+	points += initial(salvage_path.points) * point_upgrade
+
+/**
+  * Appraises the salvage.
+  *
+  * Arguments:
+  * * S - The Salvage to Appraise
+  */
+/obj/machinery/smartfridge/salvage_appraiser/proc/appraise_salvage(obj/item/salvage/S)
+	// Award points based on the salvage's point value.
+	if(!S.appraised)
+		S.appraised = TRUE
+		give_points(S)
+
+#undef BASE_POINT_MULT
+#undef BASE_STORAGE
+#undef POINT_MULT_ADD_PER_RATING
+#undef FILL_LEVEL_LEVEL_1
+#undef FILL_LEVEL_LEVEL_2
+#undef FILL_LEVEL_LEVEL_3

@@ -1154,6 +1154,17 @@ to destroy them and players will be able to make replacements.
 	board_name = "Explorer Equipment Vendor"
 	build_path = /obj/machinery/mineral/equipment_vendor/explorer
 
+/obj/item/circuitboard/salvage_appraiser
+	board_name = "Salvage Appraiser"
+	icon_state = "supply"
+	build_path = /obj/machinery/smartfridge/salvage_appraiser
+	board_type = "machine"
+	origin_tech = "programming=1;engineering=2"
+	req_components = list(
+							/obj/item/stock_parts/matter_bin = 1,
+							/obj/item/stock_parts/micro_laser = 2,
+							/obj/item/stock_parts/manipulator = 2,)
+
 /obj/item/circuitboard/clawgame
 	board_name = "Claw Game"
 	icon_state = "generic"

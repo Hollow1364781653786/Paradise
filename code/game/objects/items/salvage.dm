@@ -9,6 +9,9 @@
 	hitsound = 'sound/items/handling/salvagepickup.ogg'
 	pickup_sound = 'sound/items/handling/salvagepickup.ogg'
 	drop_sound = 'sound/items/handling/salvagedrop.ogg'
+	w_class = WEIGHT_CLASS_NORMAL
+	var/appraised = FALSE
+	var/points = 0 //How many points this salvage gets you from the salvage appraiser machine
 
 /obj/item/salvage/examine(mob/user)
 	. = ..()
@@ -24,12 +27,14 @@
 	desc = "A highly valued keg of aged space rum. Limited edition and sure to be a collector's item."
 	icon = 'icons/obj/objects.dmi'
 	icon_state = "barrel"
+	points = 100
 	color = "#7e5c00" // So that it's slightly different from normal kegs
 
 /obj/item/salvage/ruin/soviet
 	name = "armaments cache"
 	desc = "A crate of old disused Belastrav ballistic firearms that have been weathered into uselessness. They still may be of value to collectors, however."
 	icon_state = "weapon_crate"
+	points = 150
 
 /obj/item/salvage/ruin/brick
 	name = "mysterious brick"
@@ -38,6 +43,7 @@
 	hitsound = 'sound/items/handling/taperecorder_drop.ogg'
 	pickup_sound = 'sound/items/handling/taperecorder_pickup.ogg'
 	drop_sound = 'sound/items/handling/taperecorder_drop.ogg'
+	points = 50
 
 /obj/item/salvage/ruin/brick/Initialize(mapload)
 	. = ..()
@@ -50,6 +56,7 @@
 	hitsound = 'sound/items/handling/paper_pickup.ogg'
 	pickup_sound = 'sound/items/handling/paper_pickup.ogg'
 	drop_sound = 'sound/items/handling/paper_drop.ogg'
+	points = 200
 
 /obj/item/salvage/ruin/nanotrasen/Initialize(mapload)
 	. = ..()
@@ -62,6 +69,7 @@
 	hitsound = sound('sound/effects/hit_on_shattered_glass.ogg', 20)
 	pickup_sound = sound('sound/hallucinations/im_here2.ogg', 10)
 	drop_sound = sound('sound/hallucinations/look_up2.ogg', 10)
+	points = 75
 
 /obj/item/salvage/ruin/tablet
 	name = "mysterious tablet"
@@ -70,6 +78,7 @@
 	hitsound = sound('sound/effects/break_stone.ogg', 20)
 	pickup_sound =  sound('sound/hallucinations/im_here2.ogg', 10)
 	drop_sound = sound('sound/hallucinations/look_up2.ogg', 10)
+	points = 100
 
 /// Loot salvage, gained from fighting space simplemobs.
 
@@ -83,6 +92,7 @@
 	hitsound = 'sound/items/handling/taperecorder_drop.ogg'
 	pickup_sound = 'sound/items/handling/taperecorder_pickup.ogg'
 	drop_sound = 'sound/items/handling/taperecorder_drop.ogg'
+	points = 150
 
 /obj/item/salvage/loot/soviet
 	name = "\improper Cygni manifesto"
@@ -91,6 +101,7 @@
 	hitsound = 'sound/items/handling/paper_pickup.ogg'
 	pickup_sound = 'sound/items/handling/paper_pickup.ogg'
 	drop_sound = 'sound/items/handling/paper_drop.ogg'
+	points = 150
 
 /obj/item/salvage/loot/syndicate
 	name = "syndicate intel"
@@ -99,3 +110,4 @@
 	hitsound = 'sound/items/handling/paper_pickup.ogg'
 	pickup_sound = 'sound/items/handling/paper_pickup.ogg'
 	drop_sound = 'sound/items/handling/paper_drop.ogg'
+	points = 200

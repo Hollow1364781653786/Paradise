@@ -521,6 +521,16 @@
 	build_path = /obj/item/circuitboard/ore_redemption
 	category = list ("Misc. Machinery")
 
+/datum/design/salvage_appraiser
+	name = "Machine Design (Salvage Appraiser Board)"
+	desc = "The circuit board for an Salvage Appraiser machine."
+	id = "salvage_appraiser"
+	req_tech = list("programming" = 2, "engineering" = 2, "plasmatech" = 3)
+	build_type = IMPRINTER
+	materials = list(MAT_GLASS = 1000)
+	build_path = /obj/item/circuitboard/salvage_appraiser
+	category = list ("Misc. Machinery")
+
 /datum/design/smart_hopper
 	name = "Machine Design (Smart Hopper)"
 	desc = "The circuit board for a Smart Hopper."
